@@ -29,8 +29,20 @@ class SubjectNotesApp extends StatelessWidget {
       title: 'Subject Notes',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF5B5FEF),
+          brightness: Brightness.light,
+        ),
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF8F8FC),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFF8F8FC),
+          centerTitle: false,
+        ),
+        cardTheme: const CardThemeData(
+          elevation: 0,
+          margin: EdgeInsets.zero,
+        ),
       ),
       home: const HomeScreen(),
     );
