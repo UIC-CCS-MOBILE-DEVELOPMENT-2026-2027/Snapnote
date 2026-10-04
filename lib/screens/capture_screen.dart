@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/image_storage_service.dart';
 import 'entry_editor_screen.dart';
+import '../models/entry.dart';
 
 /// Lets the user take a photo or pick one from the gallery, preview it, and
 /// confirm before handing it off to [EntryEditorScreen] for transcription.
@@ -19,9 +20,14 @@ import 'entry_editor_screen.dart';
 /// Without those, the OS will silently deny the request or crash on some
 /// versions rather than showing a prompt.
 class CaptureScreen extends StatefulWidget {
-  const CaptureScreen({super.key, required this.subjectId});
+  const CaptureScreen({
+    super.key,
+    required this.subjectId,
+    this.existingEntry,
+  });
 
   final int subjectId;
+  final Entry? existingEntry;
 
   @override
   State<CaptureScreen> createState() => _CaptureScreenState();
@@ -67,6 +73,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
       MaterialPageRoute(
         builder: (_) => EntryEditorScreen(
           subjectId: widget.subjectId,
+          existingEntry: widget.existingEntry,
           initialImagePath: image.path,
         ),
       ),
