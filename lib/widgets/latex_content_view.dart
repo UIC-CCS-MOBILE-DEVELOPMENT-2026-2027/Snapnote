@@ -81,12 +81,11 @@ class LatexContentView extends StatelessWidget {
     }
   }
 
-  Widget _buildBlockMath(_ContentSegment segment, TextStyle baseStyle) {
-    // A plain Column child, not wrapped in Wrap or SizedBox(width: infinity)
-    // — Column gives its children bounded/loose width constraints, so this
-    // is safe where the old single-Wrap layout wasn't.
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+ Widget _buildBlockMath(_ContentSegment segment, TextStyle baseStyle) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: Math.tex(
         segment.text,
         textStyle: baseStyle,
@@ -95,8 +94,9 @@ class LatexContentView extends StatelessWidget {
           style: baseStyle.copyWith(color: Colors.red),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   List<_ContentSegment> _parseSegments(String input) {
     final segments = <_ContentSegment>[];
