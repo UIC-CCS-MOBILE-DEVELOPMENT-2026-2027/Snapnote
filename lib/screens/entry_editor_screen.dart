@@ -35,7 +35,7 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
 
   late final TextEditingController _contentController;
   String? _sourceImagePath;
-  bool _showPreview = false;
+  bool _showPreview = true;
   bool _isTranscribing = false;
   String? _error;
 
