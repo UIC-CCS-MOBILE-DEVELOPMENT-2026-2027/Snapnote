@@ -1,0 +1,46 @@
+name: subject_notes_app
+description: >
+  Local-first study notes app. Organizes notes into Subjects and Entries,
+  transcribes photos of handwritten/printed notes via the Gemini API,
+  and preserves math as LaTeX. No login, no cloud sync, no export.
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- Local storage (no cloud sync, no login) ---
+  sqflite: ^2.3.3+1
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # --- Photo capture for transcription ---
+  image_picker: ^1.1.2
+
+  # --- Math rendering: $...$ inline, $$...$$ block ---
+  flutter_math_fork: ^0.7.3
+
+  # --- Gemini API (free tier) for photo -> text transcription ---
+  google_generative_ai: ^0.4.6
+
+  # --- Loads GEMINI_API_KEY from .env (never commit the real .env) ---
+  flutter_dotenv: ^5.1.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  # .env is loaded at runtime by flutter_dotenv; keep the real .env out of
+  # version control (see .gitignore) and ship .env.example instead.
+  assets:
+    - .env
