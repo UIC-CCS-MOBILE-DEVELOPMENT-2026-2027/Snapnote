@@ -1,5 +1,7 @@
 import '../models/entry.dart';
+import '../models/entry_search_result.dart';
 import '../services/image_storage_service.dart';
+import '../utils/search_utils.dart';
 import 'database_helper.dart';
 
 /// Thin repository around [DatabaseHelper] for [Entry] CRUD.
@@ -57,5 +59,11 @@ class EntryRepository {
     if (entry?.sourceImagePath != null) {
       await _imageService.deleteImage(entry!.sourceImagePath);
     }
+  }
+
+  /// Searches all entries (content or subject name). Returns an empty list
+  /// for a blank query.
+  Future<List<EntrySearchResult>> search(String query) {
+    return _db.searchEntries(parseSearchTerms(query));
   }
 }

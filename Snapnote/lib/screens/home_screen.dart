@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/database_helper.dart';
 import '../data/entry_repository.dart';
 import '../models/subject.dart';
+import 'search_screen.dart';
 import 'subject_detail_screen.dart';
 
 /// Home screen: lists all Subjects, with entry counts, create/delete, and
@@ -163,6 +164,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _openSearch() {
+    // Entries can be edited from search results, so refresh counts on return.
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SearchScreen()),
+    ).then((_) => _refresh());
+  }
+
   void _openSubject(Subject subject) {
     Navigator.push(
       context,
@@ -175,7 +184,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('SnapNote')),
+      appBar: AppBar(
+        title: const Text('SnapNote'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            tooltip: 'Search notes',
+            onPressed: _openSearch,
+          ),
+        ],
+      ),
       body: FutureBuilder<List<_SubjectWithCount>>(
         future: _subjectsFuture,
         builder: (context, snapshot) {

@@ -3,7 +3,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../models/entry.dart';
+import '../models/entry_search_result.dart';
 import '../models/subject.dart';
+import '../utils/search_utils.dart';
 
 /// Singleton wrapper around a local sqflite database.
 ///
@@ -161,6 +163,55 @@ class DatabaseHelper {
   Future<int> deleteEntry(int id) async {
     final db = await database;
     return db.delete(tableEntries, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------------------------------------------------------------------
+  // Search
+  // ---------------------------------------------------------------------
+
+  /// Finds entries across all subjects. Every term must match either the
+  /// entry's content or its subject's name (AND across terms), so typing a
+  /// subject name lists that subject's entries. Newest-updated first.
+  ///
+  /// Note: SQLite's LIKE is case-insensitive for ASCII only; accented or
+  /// non-Latin letters match case-sensitively.
+  Future<List<EntrySearchResult>> searchEntries(
+    List<String> terms, {
+    int limit = 100,
+  }) async {
+    if (terms.isEmpty) return const [];
+    final db = await database;
+
+    final clauses = <String>[];
+    final args = <Object?>[];
+    for (final term in terms) {
+      clauses.add(
+        r"(e.content LIKE ? ESCAPE '\' OR s.name LIKE ? ESCAPE '\')",
+      );
+      final pattern = '%${escapeLike(term)}%';
+      args
+        ..add(pattern)
+        ..add(pattern);
+    }
+
+    final rows = await db.rawQuery(
+      '''
+      SELECT e.*, s.name AS subjectName
+      FROM $tableEntries e
+      INNER JOIN $tableSubjects s ON s.id = e.subjectId
+      WHERE ${clauses.join(' AND ')}
+      ORDER BY e.updatedAt DESC
+      LIMIT $limit
+      ''',
+      args,
+    );
+
+    return rows
+        .map((row) => EntrySearchResult(
+              entry: Entry.fromMap(row),
+              subjectName: row['subjectName'] as String,
+            ))
+        .toList();
   }
 
   Future<void> close() async {
