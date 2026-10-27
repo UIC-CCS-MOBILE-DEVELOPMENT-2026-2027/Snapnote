@@ -81,22 +81,22 @@ class LatexContentView extends StatelessWidget {
     }
   }
 
- Widget _buildBlockMath(_ContentSegment segment, TextStyle baseStyle) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Math.tex(
-        segment.text,
-        textStyle: baseStyle,
-        onErrorFallback: (err) => Text(
-          '\$\$${segment.text}\$\$',
-          style: baseStyle.copyWith(color: Colors.red),
+  Widget _buildBlockMath(_ContentSegment segment, TextStyle baseStyle) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Math.tex(
+          segment.text,
+          textStyle: baseStyle,
+          onErrorFallback: (err) => Text(
+            '\$\$${segment.text}\$\$',
+            style: baseStyle.copyWith(color: Colors.red),
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   List<_ContentSegment> _parseSegments(String input) {
     final segments = <_ContentSegment>[];

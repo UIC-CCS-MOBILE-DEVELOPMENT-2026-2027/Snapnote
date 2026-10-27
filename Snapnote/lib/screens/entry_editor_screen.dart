@@ -6,7 +6,10 @@ import '../data/entry_repository.dart';
 import '../models/entry.dart';
 import '../services/gemini_transcription_service.dart';
 import '../widgets/latex_content_view.dart';
+import '../widgets/source_photo_strip.dart';
+import '../widgets/zoomable_image.dart';
 import 'capture_screen.dart';
+import 'source_image_screen.dart';
 
 /// Create a new entry or edit an existing one.
 ///
@@ -35,7 +38,8 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
 
   late final TextEditingController _contentController;
   String? _sourceImagePath;
-  bool _showPreview = true;
+  bool _showPreview = false;
+  bool _showCompare = false;
   bool _isTranscribing = false;
   String? _error;
 
@@ -83,6 +87,13 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
     } finally {
       if (mounted) setState(() => _isTranscribing = false);
     }
+  }
+
+  void _openSourceImage(String path) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SourceImageScreen(path: path)),
+    );
   }
 
   Future<void> _addAnotherPage() async {
@@ -219,9 +230,15 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+                Text(title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
-                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                Text(subtitle,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
                 const SizedBox(height: 18),
                 SizedBox(
                   height: 128,
@@ -234,7 +251,9 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
                       return SizedBox(
                         width: 104,
                         child: Material(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(20),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(20),
@@ -248,13 +267,22 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
                                     width: 54,
                                     height: 54,
                                     decoration: BoxDecoration(
-                                      color: Theme.of(context).colorScheme.primaryContainer,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primaryContainer,
                                       borderRadius: BorderRadius.circular(16),
                                     ),
-                                    child: Icon(option.icon, color: Theme.of(context).colorScheme.onPrimaryContainer),
+                                    child: Icon(option.icon,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer),
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(option.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                  Text(option.label,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w600)),
                                 ],
                               ),
                             ),
@@ -275,6 +303,11 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final sourcePath = _sourceImagePath;
+    // The photo file can be gone (e.g. app data partly cleared); only offer
+    // the viewer when it's actually on disk.
+    final hasSourceImage = sourcePath != null && File(sourcePath).existsSync();
+    final showCompare = hasSourceImage && _showCompare;
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -282,7 +315,8 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         titleSpacing: 4,
-        title: Text(_isEditing ? 'Edit Note' : 'New Note', style: const TextStyle(fontWeight: FontWeight.w700)),
+        title: Text(_isEditing ? 'Edit Note' : 'New Note',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
         actions: [
           Tooltip(
             message: 'Add another page',
@@ -295,7 +329,8 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
           Tooltip(
             message: _showPreview ? 'Edit' : 'Reading mode',
             child: IconButton(
-              icon: Icon(_showPreview ? Icons.edit_rounded : Icons.menu_book_rounded),
+              icon: Icon(
+                  _showPreview ? Icons.edit_rounded : Icons.menu_book_rounded),
               onPressed: () => setState(() => _showPreview = !_showPreview),
             ),
           ),
@@ -316,8 +351,7 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
       ),
       body: Column(
         children: [
-          if (_isTranscribing)
-            const LinearProgressIndicator(minHeight: 2),
+          if (_isTranscribing) const LinearProgressIndicator(minHeight: 2),
           if (_error != null)
             Container(
               width: double.infinity,
@@ -329,7 +363,30 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
               ),
               child: Text(_error!),
             ),
+          if (hasSourceImage)
+            SourcePhotoStrip(
+              path: sourcePath!,
+              compareActive: showCompare,
+              onOpenFullScreen: () => _openSourceImage(sourcePath!),
+              onToggleCompare: () =>
+                  setState(() => _showCompare = !_showCompare),
+            ),
+          if (showCompare)
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: ColoredBox(
+                    color: Colors.black,
+                    child: ZoomableImage(path: sourcePath!),
+                  ),
+                ),
+              ),
+            ),
           Expanded(
+            flex: showCompare ? 3 : 1,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: AnimatedSwitcher(
@@ -345,7 +402,8 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
                           border: Border.all(color: scheme.outlineVariant),
                         ),
                         child: SingleChildScrollView(
-                          child: LatexContentView(content: _contentController.text),
+                          child: LatexContentView(
+                              content: _contentController.text),
                         ),
                       )
                     : Container(
@@ -363,7 +421,8 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
                           textAlignVertical: TextAlignVertical.top,
                           style: const TextStyle(fontSize: 16, height: 1.55),
                           decoration: const InputDecoration(
-                            hintText: 'Your transcribed notes will appear here…',
+                            hintText:
+                                'Your transcribed notes will appear here…',
                             border: InputBorder.none,
                           ),
                         ),
