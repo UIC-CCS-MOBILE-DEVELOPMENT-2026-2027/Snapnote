@@ -17,11 +17,13 @@ class EntryRepository {
     required int subjectId,
     required String content,
     String? sourceImagePath,
+    int? topicId,
   }) {
     final now = DateTime.now();
     return _db.createEntry(
       Entry(
         subjectId: subjectId,
+        topicId: topicId,
         content: content,
         sourceImagePath: sourceImagePath,
         createdAt: now,
@@ -40,6 +42,9 @@ class EntryRepository {
     Entry entry, {
     required String newContent,
     String? newSourceImagePath,
+    // Unlike the image path, the topic is always applied: null means "No
+    // topic", so callers pass the editor's current selection every time.
+    int? newTopicId,
   }) {
     // copyWith's own `?? this.x` fallback means omitting
     // newSourceImagePath (leaving it null) keeps the entry's existing
@@ -48,6 +53,8 @@ class EntryRepository {
         .updateEntry(entry.copyWith(
           content: newContent,
           sourceImagePath: newSourceImagePath,
+          topicId: newTopicId,
+          clearTopicId: newTopicId == null,
           updatedAt: DateTime.now(),
         ))
         .then((_) {});
@@ -61,7 +68,7 @@ class EntryRepository {
     }
   }
 
-  /// Searches all entries (content or subject name). Returns an empty list
+  /// Searches all entries (content, subject name, or topic name). Returns an empty list
   /// for a blank query.
   Future<List<EntrySearchResult>> search(String query) {
     return _db.searchEntries(parseSearchTerms(query));

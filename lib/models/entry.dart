@@ -7,6 +7,9 @@
 class Entry {
   final int? id;
   final int subjectId;
+
+  /// Optional topic/lesson within the subject. Null = "No topic".
+  final int? topicId;
   final String content;
 
   /// Path to the source photo on device storage, if this entry originated
@@ -19,6 +22,7 @@ class Entry {
   const Entry({
     this.id,
     required this.subjectId,
+    this.topicId,
     required this.content,
     this.sourceImagePath,
     required this.createdAt,
@@ -28,6 +32,10 @@ class Entry {
   Entry copyWith({
     int? id,
     int? subjectId,
+    int? topicId,
+    // copyWith can't express "set to null" via a null argument, so clearing
+    // the topic is an explicit flag.
+    bool clearTopicId = false,
     String? content,
     String? sourceImagePath,
     DateTime? createdAt,
@@ -36,6 +44,7 @@ class Entry {
     return Entry(
       id: id ?? this.id,
       subjectId: subjectId ?? this.subjectId,
+      topicId: clearTopicId ? null : (topicId ?? this.topicId),
       content: content ?? this.content,
       sourceImagePath: sourceImagePath ?? this.sourceImagePath,
       createdAt: createdAt ?? this.createdAt,
@@ -47,6 +56,7 @@ class Entry {
     return {
       'id': id,
       'subjectId': subjectId,
+      'topicId': topicId,
       'content': content,
       'sourceImagePath': sourceImagePath,
       'createdAt': createdAt.toIso8601String(),
@@ -58,6 +68,7 @@ class Entry {
     return Entry(
       id: map['id'] as int?,
       subjectId: map['subjectId'] as int,
+      topicId: map['topicId'] as int?,
       content: map['content'] as String,
       sourceImagePath: map['sourceImagePath'] as String?,
       createdAt: DateTime.parse(map['createdAt'] as String),

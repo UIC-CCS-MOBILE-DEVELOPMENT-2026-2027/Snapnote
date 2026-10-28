@@ -146,7 +146,7 @@ class _SearchScreenState extends State<SearchScreen> {
     if (_activeQuery.isEmpty) {
       return Center(
         child: Text(
-          _isSearching ? '' : 'Search your notes by text or subject name',
+          _isSearching ? '' : 'Search your notes by text, subject, or topic',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       );
@@ -171,7 +171,9 @@ class _SearchScreenState extends State<SearchScreen> {
         return ListTile(
           isThreeLine: true,
           title: Text(
-            result.subjectName,
+            result.topicName == null
+                ? result.subjectName
+                : '${result.subjectName} › ${result.topicName}',
             style: Theme.of(context).textTheme.labelLarge,
           ),
           subtitle: Padding(
