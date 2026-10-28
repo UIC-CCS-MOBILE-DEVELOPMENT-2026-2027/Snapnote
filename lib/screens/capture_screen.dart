@@ -24,10 +24,14 @@ class CaptureScreen extends StatefulWidget {
     super.key,
     required this.subjectId,
     this.existingEntry,
+    this.initialTopicId,
   });
 
   final int subjectId;
   final Entry? existingEntry;
+
+  /// Topic to file a brand-new entry under (ignored for existing entries).
+  final int? initialTopicId;
 
   @override
   State<CaptureScreen> createState() => _CaptureScreenState();
@@ -74,6 +78,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
         builder: (_) => EntryEditorScreen(
           subjectId: widget.subjectId,
           existingEntry: widget.existingEntry,
+          initialTopicId: widget.initialTopicId,
           initialImagePath: image.path,
         ),
       ),

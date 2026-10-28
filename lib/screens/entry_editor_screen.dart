@@ -3,10 +3,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../data/entry_repository.dart';
+import '../data/topic_repository.dart';
 import '../models/entry.dart';
+import '../models/topic.dart';
 import '../services/gemini_transcription_service.dart';
 import '../widgets/latex_content_view.dart';
 import '../widgets/source_photo_strip.dart';
+import '../widgets/topic_name_dialog.dart';
 import '../widgets/zoomable_image.dart';
 import 'capture_screen.dart';
 import 'source_image_screen.dart';
@@ -22,11 +25,15 @@ class EntryEditorScreen extends StatefulWidget {
     required this.subjectId,
     this.existingEntry,
     this.initialImagePath,
+    this.initialTopicId,
   });
 
   final int subjectId;
   final Entry? existingEntry;
   final String? initialImagePath;
+
+  /// Topic a new entry starts in (existing entries use their own topic).
+  final int? initialTopicId;
 
   @override
   State<EntryEditorScreen> createState() => _EntryEditorScreenState();
@@ -34,10 +41,13 @@ class EntryEditorScreen extends StatefulWidget {
 
 class _EntryEditorScreenState extends State<EntryEditorScreen> {
   final _repo = EntryRepository();
+  final _topicRepo = TopicRepository();
   final _transcriptionService = GeminiTranscriptionService();
 
   late final TextEditingController _contentController;
   String? _sourceImagePath;
+  int? _topicId;
+  List<Topic> _topics = [];
   bool _showPreview = false;
   bool _showCompare = false;
   bool _isTranscribing = false;
@@ -51,6 +61,8 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
     _contentController =
         TextEditingController(text: widget.existingEntry?.content ?? '');
     _sourceImagePath = widget.existingEntry?.sourceImagePath;
+    _topicId = widget.existingEntry?.topicId ?? widget.initialTopicId;
+    _loadTopics();
 
     final initialPath = widget.initialImagePath;
     if (initialPath != null) {
@@ -89,6 +101,82 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
     }
   }
 
+  Future<void> _loadTopics() async {
+    try {
+      final topics = await _topicRepo.getForSubject(widget.subjectId);
+      if (!mounted) return;
+      setState(() => _topics = topics);
+    } catch (_) {
+      // Topics are optional; the editor still works without the list.
+    }
+  }
+
+  String? get _topicName {
+    for (final t in _topics) {
+      if (t.id == _topicId) return t.name;
+    }
+    return null;
+  }
+
+  Future<void> _pickTopic() async {
+    final choice = await showModalBottomSheet<_TopicChoice>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.block),
+              title: const Text('No topic'),
+              selected: _topicId == null,
+              onTap: () =>
+                  Navigator.pop(sheetContext, const _TopicChoice.none()),
+            ),
+            for (final t in _topics)
+              ListTile(
+                leading: const Icon(Icons.bookmark_outline),
+                title: Text(t.name),
+                selected: t.id == _topicId,
+                onTap: () =>
+                    Navigator.pop(sheetContext, _TopicChoice.topic(t.id)),
+              ),
+            ListTile(
+              leading: const Icon(Icons.add),
+              title: const Text('New topic…'),
+              onTap: () =>
+                  Navigator.pop(sheetContext, const _TopicChoice.create()),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return; // Dismissed: keep current topic.
+
+    if (choice.create) {
+      final name = await showTopicNameDialog(
+        context,
+        existingNames: _topics.map((t) => t.name).toList(),
+      );
+      if (name == null || !mounted) return;
+      try {
+        final topic = await _topicRepo.create(widget.subjectId, name);
+        if (!mounted) return;
+        setState(() {
+          _topics = [..._topics, topic];
+          _topicId = topic.id;
+        });
+      } catch (_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Couldn't create topic — try again")),
+        );
+      }
+      return;
+    }
+
+    setState(() => _topicId = choice.id);
+  }
+
   void _openSourceImage(String path) {
     Navigator.push(
       context,
@@ -118,12 +206,14 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
           widget.existingEntry!,
           newContent: content,
           newSourceImagePath: _sourceImagePath,
+          newTopicId: _topicId,
         );
       } else {
         await _repo.create(
           subjectId: widget.subjectId,
           content: content,
           sourceImagePath: _sourceImagePath,
+          topicId: _topicId,
         );
       }
     } catch (_) {
@@ -345,6 +435,17 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
               ),
               child: Text(_error!),
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ActionChip(
+                avatar: const Icon(Icons.bookmark_outline, size: 18),
+                label: Text(_topicName ?? 'Add topic'),
+                onPressed: _pickTopic,
+              ),
+            ),
+          ),
           if (hasSourceImage)
             SourcePhotoStrip(
               path: sourcePath!,
@@ -414,6 +515,21 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
       ),
     );
   }
+}
+
+/// Result of the topic picker sheet: no topic, a specific topic, or "create
+/// a new one". (A dismissed sheet returns null instead.)
+class _TopicChoice {
+  const _TopicChoice.none()
+      : id = null,
+        create = false;
+  const _TopicChoice.topic(this.id) : create = false;
+  const _TopicChoice.create()
+      : id = null,
+        create = true;
+
+  final int? id;
+  final bool create;
 }
 
 class _SheetOption {
