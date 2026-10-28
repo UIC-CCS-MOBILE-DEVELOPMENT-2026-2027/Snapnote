@@ -6,7 +6,10 @@ import '../data/entry_repository.dart';
 import '../models/entry.dart';
 import '../services/gemini_transcription_service.dart';
 import '../widgets/latex_content_view.dart';
+import '../widgets/source_photo_strip.dart';
+import '../widgets/zoomable_image.dart';
 import 'capture_screen.dart';
+import 'source_image_screen.dart';
 
 /// Create a new entry or edit an existing one.
 ///
@@ -35,7 +38,8 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
 
   late final TextEditingController _contentController;
   String? _sourceImagePath;
-  bool _showPreview = true;
+  bool _showPreview = false;
+  bool _showCompare = false;
   bool _isTranscribing = false;
   String? _error;
 
@@ -83,6 +87,13 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
     } finally {
       if (mounted) setState(() => _isTranscribing = false);
     }
+  }
+
+  void _openSourceImage(String path) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => SourceImageScreen(path: path)),
+    );
   }
 
   Future<void> _addAnotherPage() async {
@@ -275,6 +286,11 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final sourcePath = _sourceImagePath;
+    // The photo file can be gone (e.g. app data partly cleared); only offer
+    // the viewer when it's actually on disk.
+    final hasSourceImage = sourcePath != null && File(sourcePath).existsSync();
+    final showCompare = hasSourceImage && _showCompare;
 
     return Scaffold(
       backgroundColor: scheme.surface,
@@ -329,7 +345,30 @@ class _EntryEditorScreenState extends State<EntryEditorScreen> {
               ),
               child: Text(_error!),
             ),
+          if (hasSourceImage)
+            SourcePhotoStrip(
+              path: sourcePath!,
+              compareActive: showCompare,
+              onOpenFullScreen: () => _openSourceImage(sourcePath!),
+              onToggleCompare: () =>
+                  setState(() => _showCompare = !_showCompare),
+            ),
+          if (showCompare)
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: ColoredBox(
+                    color: Colors.black,
+                    child: ZoomableImage(path: sourcePath!),
+                  ),
+                ),
+              ),
+            ),
           Expanded(
+            flex: showCompare ? 3 : 1,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: AnimatedSwitcher(
